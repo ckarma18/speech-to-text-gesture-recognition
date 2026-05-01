@@ -165,7 +165,7 @@ export default function GestureDetection({
             <br />
             Use distinct poses:
             <br />
-            🚨 HELP, 👍 YES, 👎 NO, 📞 CALL, 👋 COME, ✋ STOP, 👌 OK, 🚓 POLICE, ☮️ PEACE
+            👍 GOOD, 👎 BAD, ✋ STOP, 👉 GO, 👋 COME, 👌 OK, 📞 CALL, 🚻 TOILET, 🤞 GOOD LUCK, 🤫 SILENT
           </p>
         </div>
       </div>
