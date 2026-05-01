@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Hands } from '@mediapipe/hands';
-import { Camera } from '@mediapipe/camera_utils';
-import { DetectedHand, GestureResult } from '../types';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Hands } from "@mediapipe/hands";
+import { DetectedHand, GestureResult } from "../types";
 
 export const useGestureRecognition = (
   videoElement: HTMLVideoElement | null,
@@ -12,7 +11,7 @@ export const useGestureRecognition = (
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handsRef = useRef<Hands | null>(null);
-  const cameraRef = useRef<Camera | null>(null);
+  const intervalRef = useRef<number | null>(null);
   const lastGestureTime = useRef<number>(0);
 
   const sendToBackend = async (landmarks: number[]) => {
@@ -26,7 +25,8 @@ export const useGestureRecognition = (
       });
 
       if (!res.ok) {
-        throw new Error(`Backend returned ${res.status}`);
+        console.error("Backend returned:", res.status);
+        return null;
       }
 
       return await res.json();
@@ -41,8 +41,8 @@ export const useGestureRecognition = (
       const hands: DetectedHand[] = results.multiHandLandmarks.map(
         (landmarks: any, index: number) => ({
           landmarks,
-          handedness: results.multiHandedness?.[index]?.label || 'Unknown',
-          score: results.multiHandedness?.[index]?.score || 0
+          handedness: results.multiHandedness?.[index]?.label || "Unknown",
+          score: results.multiHandedness?.[index]?.score || 0,
         })
       );
 
@@ -69,13 +69,15 @@ export const useGestureRecognition = (
             } else if (result.gesture === "no_hand") {
               displayGesture = "SHOW HAND TO DETECT 🖐️";
             } else {
-              displayGesture = `${result.gesture.toUpperCase()} ${result.emoji || ""}`.trim();
+              displayGesture = `${result.gesture.toUpperCase()} ${
+                result.emoji || ""
+              }`.trim();
             }
 
             setCurrentGesture({
               gesture: displayGesture,
               confidence: result.confidence ?? 1.0,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
 
             lastGestureTime.current = now;
@@ -87,15 +89,16 @@ export const useGestureRecognition = (
       setCurrentGesture({
         gesture: "SHOW HAND TO DETECT 🖐️",
         confidence: 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
   }, []);
 
   useEffect(() => {
     if (!videoElement || !isActive) {
-      if (cameraRef.current) {
-        cameraRef.current.stop();
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
       return;
     }
@@ -105,31 +108,30 @@ export const useGestureRecognition = (
         setIsProcessing(true);
 
         handsRef.current = new Hands({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+          locateFile: (file) =>
+            `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
         });
 
         handsRef.current.setOptions({
           maxNumHands: 1,
           modelComplexity: 1,
           minDetectionConfidence: 0.7,
-          minTrackingConfidence: 0.5
+          minTrackingConfidence: 0.5,
         });
 
         handsRef.current.onResults(onResults);
 
-        cameraRef.current = new Camera(videoElement, {
-          onFrame: async () => {
-            if (handsRef.current && videoElement) {
-              await handsRef.current.send({ image: videoElement });
-            }
-          },
-          width: 1280,
-          height: 720
-        });
-
-        await cameraRef.current.start();
+        intervalRef.current = window.setInterval(async () => {
+          if (
+            handsRef.current &&
+            videoElement &&
+            videoElement.readyState >= 2
+          ) {
+            await handsRef.current.send({ image: videoElement });
+          }
+        }, 200);
       } catch (error) {
-        console.error('Failed to initialize hand detection:', error);
+        console.error("Failed to initialize hand detection:", error);
       } finally {
         setIsProcessing(false);
       }
@@ -138,8 +140,13 @@ export const useGestureRecognition = (
     initializeHands();
 
     return () => {
-      if (cameraRef.current) {
-        cameraRef.current.stop();
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      if (handsRef.current) {
+        handsRef.current.close();
+        handsRef.current = null;
       }
     };
   }, [videoElement, isActive, onResults]);
@@ -147,6 +154,6 @@ export const useGestureRecognition = (
   return {
     detectedHands,
     currentGesture,
-    isProcessing
+    isProcessing,
   };
 };
