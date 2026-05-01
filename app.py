@@ -85,20 +85,21 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 RESULTS_DIR = Path("api_results")
 RESULTS_DIR.mkdir(exist_ok=True)
 
-CONFIDENCE_THRESHOLD = 0.50
+CONFIDENCE_THRESHOLD = 0.30
 
 EMOJI_MAP = {
-    "yes": "👍",
-    "no": "👎",
-    "peace": "✌️",
-    "help": "🚨",
-    "call": "📞",
-    "come": "👋",
+    "good": "👍",
+    "bad": "👎",
     "stop": "✋",
+    "go": "👉",
+    "come": "👋",
     "ok": "👌",
-    "police": "🚓",
+    "call": "📞",
+    "toilet": "🚻",
+    "good_luck": "🤞",
+    "silent": "🤫",
     "no_matching": "❓",
-    "no_hand": "🖐️",
+    "no_hand": "🖐️"
 }
 
 # =============================================================================
@@ -113,7 +114,7 @@ class LandmarkData(BaseModel):
 # =============================================================================
 
 def normalize_flat_landmarks(landmarks: List[float]) -> List[float]:
-    """Normalize flat [x0,y0,x1,y1,...] landmarks relative to wrist."""
+    """Normalize flat [x0,y0,x1,y1,...] landmarks relative to wrist and scale."""
     if len(landmarks) != 42:
         return landmarks
 
@@ -124,6 +125,10 @@ def normalize_flat_landmarks(landmarks: List[float]) -> List[float]:
     for i in range(0, len(landmarks), 2):
         normalized.append(landmarks[i] - base_x)
         normalized.append(landmarks[i + 1] - base_y)
+
+    # IMPORTANT: same scale normalization as collect_gesture_data.py
+    max_value = max(abs(x) for x in normalized) or 1
+    normalized = [x / max_value for x in normalized]
 
     return normalized
 
