@@ -18,9 +18,16 @@ MODEL_PATH = "model.pkl"
 CONFIDENCE_THRESHOLD = 0.50
 
 EMOJI_MAP = {
-    "yes": "👍",
-    "no": "👎",
-    "peace": "✌️",
+    "good": "👍",
+    "bad": "👎",
+    "stop": "✋",
+    "go": "👉",
+    "come": "👋",
+    "ok": "👌",
+    "call": "📞",
+    "toilet": "🚻",
+    "good_luck": "🤞",
+    "silent": "🤫",
     "no_matching": "❓",
     "no_hand": "🖐️"
 }
